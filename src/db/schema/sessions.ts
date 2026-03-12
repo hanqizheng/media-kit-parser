@@ -1,0 +1,1 @@
+// Sessions table schema

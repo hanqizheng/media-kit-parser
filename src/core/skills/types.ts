@@ -1,0 +1,1 @@
+// Skill type definitions
