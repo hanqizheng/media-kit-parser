@@ -5,14 +5,13 @@ import type {
   LOOP_END_REASON,
   TOOL_END_STATE,
 } from "./constants";
-import type { MESSAGE_ROLE } from "../../lib/constants";
+import type { MessageRole } from "@/lib/types";
 
 export type SessionStatus =
   (typeof SESSION_STATUS)[keyof typeof SESSION_STATUS];
 export type LoopEndReason =
   (typeof LOOP_END_REASON)[keyof typeof LOOP_END_REASON];
 
-export type MessageRole = (typeof MESSAGE_ROLE)[keyof typeof MESSAGE_ROLE];
 export type ToolEndState = (typeof TOOL_END_STATE)[keyof typeof TOOL_END_STATE];
 
 export interface EventBase {
