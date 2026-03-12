@@ -14,7 +14,8 @@ const emitter = new EventEmitter(bus, "s_test123");
 
 // 模拟一次 agent 运行
 emitter.emit({ type: "session.status", status: "busy" });
-emitter.emit({ type: "loop.start", turnId: "t_turn001" });
+emitter.emit({ type: "loop.start" });
+emitter.emit({ type: "turn.start", turnId: "t_turn001" });
 emitter.emit({
   type: "message.start",
   messageId: "m_msg001",
@@ -38,9 +39,10 @@ emitter.emit({
   partIndex: 0,
 });
 emitter.emit({ type: "message.end", messageId: "m_msg001" });
-emitter.emit({ type: "loop.end", turnId: "t_turn001", reason: "complete" });
+emitter.emit({ type: "turn.end", turnId: "t_turn001", reason: "complete" });
+emitter.emit({ type: "loop.end", reason: "complete" });
 emitter.emit({ type: "session.status", status: "idle" });
 
-console.log("\n--- 验证完成：9 个事件，seq 从 0 到 8 ---");
+console.log("\n--- 验证完成：11 个事件，seq 从 0 到 10 ---");
 
 bus.dispose();

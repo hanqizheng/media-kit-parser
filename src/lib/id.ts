@@ -7,18 +7,18 @@ export function createId(prefix: "s" | "m" | "t" | "p"): string {
   return `${prefix}_${generate()}`;
 }
 
-export function sessionId(): string {
+export function genSessionId(): string {
   return createId("s");
 }
 
-export function messageId(): string {
+export function genMessageId(): string {
   return createId("m");
 }
 
-export function turnId(): string {
+export function genTurnId(): string {
   return createId("t");
 }
 
-export function partId(): string {
+export function genPartId(): string {
   return createId("p");
 }

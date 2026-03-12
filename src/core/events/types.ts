@@ -3,6 +3,7 @@
 import type {
   SESSION_STATUS,
   LOOP_END_REASON,
+  TURN_END_REASON,
   TOOL_END_STATE,
 } from "./constants";
 import type { MessageRole } from "@/lib/types";
@@ -11,6 +12,8 @@ export type SessionStatus =
   (typeof SESSION_STATUS)[keyof typeof SESSION_STATUS];
 export type LoopEndReason =
   (typeof LOOP_END_REASON)[keyof typeof LOOP_END_REASON];
+export type TurnEndReason =
+  (typeof TURN_END_REASON)[keyof typeof TURN_END_REASON];
 
 export type ToolEndState = (typeof TOOL_END_STATE)[keyof typeof TOOL_END_STATE];
 
@@ -29,17 +32,28 @@ interface SessionStatusEvent extends EventBase {
   status: SessionStatus;
 }
 
-/** AgentLoop 新一轮 loop 开始 事件 */
-interface LoopTurnStartEvent extends EventBase {
+/** 整个 Agent Loop 开始 */
+interface LoopStartEvent extends EventBase {
   type: "loop.start";
+}
+
+/** 整个 Agent Loop 结束 */
+interface LoopEndEvent extends EventBase {
+  type: "loop.end";
+  reason: LoopEndReason;
+}
+
+/** 单次 Turn 开始（loop 内的一次迭代） */
+interface TurnStartEvent extends EventBase {
+  type: "turn.start";
   turnId: string;
 }
 
-/** AgentLoop 一轮 loop 结束 事件 */
-interface LoopTurnEndEvent extends EventBase {
-  type: "loop.end";
+/** 单次 Turn 结束 */
+interface TurnEndEvent extends EventBase {
+  type: "turn.end";
   turnId: string;
-  reason: LoopEndReason;
+  reason: TurnEndReason;
 }
 
 /** 消息开始事件 */
@@ -145,8 +159,10 @@ interface HeartbeatEvent extends EventBase {
 
 export type AgentEvent =
   | SessionStatusEvent
-  | LoopTurnStartEvent
-  | LoopTurnEndEvent
+  | LoopStartEvent
+  | LoopEndEvent
+  | TurnStartEvent
+  | TurnEndEvent
   | MessageStartEvent
   | MessageEndEvent
   | TextDeltaEvent
