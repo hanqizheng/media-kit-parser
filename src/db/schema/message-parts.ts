@@ -1,0 +1,1 @@
+// Message parts table schema
