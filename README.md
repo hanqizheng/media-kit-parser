@@ -1,70 +1,61 @@
-# General Agent
+# Media Kit Parser
 
-A from-scratch AI agent engine built with TypeScript and Next.js. Implements the core agentic loop pattern — LLM reasoning, tool calling, result feedback, repeat — with real-time SSE streaming.
+[中文文档](./README.zh-CN.md)
 
-Designed as a **generic foundation** for building vertical AI agents. This project provides the agent runtime, tool system, provider abstraction, and event streaming infrastructure. Domain-specific capabilities are added by downstream projects.
+An AI agent that automatically parses KOL/influencer media kits — extracting follower counts, engagement rates, platform profiles, pricing, and audience demographics from PDF or document files. Built for affiliate marketing workflows.
 
-## Architecture
+Powered by [general-agent](https://github.com/hanqizheng/general-agent), a generic AI agent engine with multi-turn autonomous execution, tool calling, and real-time SSE streaming.
 
-```
-User Message → Agent Loop → LLM Call → Tool Execution → Result Feedback → LLM Call → ...
-                                                                                    ↓
-                              ← ← ← ← SSE Event Stream ← ← ← ← ← ← ← ← ← ← ← ←
-```
+## What is a Media Kit?
 
-The engine is organized into five layers:
+A media kit is a document (typically PDF) provided by KOLs/influencers to brands and agencies, containing:
 
-- **Agent Loop** — Multi-turn autonomous execution. Each turn: call the LLM, execute any tool calls, feed results back. Repeats until the LLM has nothing more to do.
-- **Provider Layer** — Unified `LLMProvider` interface. Swap between Anthropic (Claude), Moonshot (Kimi), or any LangChain-compatible model.
-- **Tool System** — Pluggable tools with Zod schema validation. Built-in: file read/write/edit, bash, grep, glob. Easy to extend with custom tools.
-- **Event System** — Structured lifecycle events (session, loop, turn, message, tool) enabling real-time observability.
-- **SSE Streaming** — Batched Server-Sent Events delivering token-level streaming to the client.
+- Social platform accounts and follower statistics
+- Engagement rates and audience demographics
+- Collaboration pricing and available ad formats
+- Past brand partnership cases
 
-## Quick Start
+Manually reviewing and extracting data from these documents is tedious and error-prone. This agent automates the process.
+
+## Features
+
+### Current
+
+- [x] General agent engine (multi-turn LLM loop with tool calling)
+- [x] Built-in tools: file read/write/edit, bash, grep, glob
+- [x] Multi-provider support (Anthropic Claude, Moonshot Kimi)
+- [x] Real-time SSE streaming
+
+### Roadmap
+
+- [ ] PDF media kit ingestion and structured data extraction
+- [ ] Multi-platform data normalization (Instagram, TikTok, YouTube, Xiaohongshu, etc.)
+- [ ] Batch processing for bulk media kit parsing
+- [ ] Structured output schema for downstream integrations
+- [ ] Pricing comparison and KOL ranking tools
+- [ ] Expansion into broader affiliate marketing workflows (campaign tracking, commission analysis, partner matching)
+- [ ] Frontend UI for media kit review and data correction
+- [ ] Database persistence for parsed results
+
+## Getting Started
 
 ```bash
-git clone git@github.com:hanqizheng/general-agent.git
-cd general-agent
+git clone git@github.com:hanqizheng/media-kit-parser.git
+cd media-kit-parser
 npm install
 docker compose up -d        # MySQL
 cp .env.local.example .env.local
-# Edit .env.local — add at least one LLM provider API key
+# Edit .env.local — add your LLM provider API key
 npm run dev
 ```
 
-Test with curl:
-
-```bash
-curl -N -X POST http://localhost:3891/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "List files in the current directory"}'
-```
-
-## Building Vertical Agents
-
-Fork this repo on GitHub, then clone your fork:
-
-```bash
-git clone git@github.com:<you>/general-agent.git my-agent
-cd my-agent
-
-# Add upstream to sync future base updates
-git remote add upstream git@github.com:hanqizheng/general-agent.git
-
-# Sync base updates anytime:
-git fetch upstream && git merge upstream/main
-```
-
-Extension points:
-- **Custom tools** — Implement `ToolDefinition`, register in `ToolRegistry`
-- **Custom providers** — Implement the `LLMProvider` interface
-- **System prompt** — Customize `src/core/prompt/` for your domain
-- **Skills** — Planned skill loading and injection system
-
 ## Tech Stack
 
-Next.js 16 (App Router) / TypeScript / LangChain / Zod v4 / MySQL + Drizzle ORM / Web Streams API + SSE / nanoid
+Next.js 16 (App Router) / TypeScript / LangChain / Zod v4 / MySQL + Drizzle ORM / Web Streams API + SSE
 
 ## License
 
-MIT
+This project is licensed under the [Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/).
+
+- **Non-commercial use**: Free to use, modify, and distribute.
+- **Commercial use**: Requires a paid license. Contact hanqizheng598@gmail.com for commercial licensing.
