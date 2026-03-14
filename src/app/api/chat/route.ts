@@ -5,6 +5,8 @@ import { SSEBatcher } from "@/core/sse/batcher";
 import { createAnthropicProvider } from "@/core/provider/anthropic";
 import { runAgentLoop } from "@/core/agent/loop";
 import { systemPrompt } from "@/core/prompt/system";
+import { ToolRegistry } from "@/core/tools/registry";
+import { readTool } from "@/core/tools/built-in/read";
 
 /**
  *   curl POST /api/chat { message: "你好" }
@@ -57,6 +59,9 @@ export async function POST(req: Request) {
     baseURL: process.env.ANTHROPIC_BASE_URL!,
   });
 
+  const toolRegistry = new ToolRegistry();
+  toolRegistry.register(readTool);
+
   // 启动 Agent Loop， 但不 await，让它在后台运行
   runAgentLoop({
     emitter,
@@ -64,6 +69,8 @@ export async function POST(req: Request) {
     systemPrompt,
     userMessage: message,
     history: [],
+    toolContext: { workspaceRoot: process.cwd() },
+    toolRegistry,
   })
     .then(() => {})
     .finally(() => {

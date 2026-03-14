@@ -9,20 +9,24 @@
 
 import { MESSAGE_ROLE } from "@/lib/constants";
 import { LLMContentBlock } from "../provider/base";
-import type { TurnParams, TurnResult } from "./types";
+import type { TurnParams, TurnResult, PendingToolCall } from "./types";
 
 import { genMessageId } from "@/lib/id";
+import { TOOL_END_STATE } from "../events/constants";
 
 export async function executeTurn(params: TurnParams): Promise<TurnResult> {
-  const { emitter, provider, streamParams } = params;
+  const { emitter, provider, streamParams, toolRegistry, toolContext } = params;
   const msgId = genMessageId();
 
   // 开始 turn，先 emit 一次消息
   emitter.emit({ type: "message.start", messageId: msgId, role: "assistant" });
 
   const contentBlocks: LLMContentBlock[] = [];
+  const pendingToolCalls: PendingToolCall[] = [];
   let currentText = "";
-  const partIndex = 0;
+  let partIndex = 0;
+
+  // === Phase 1: 消费 LLM stream ===
 
   const stream = await provider.stream(streamParams);
 
@@ -46,7 +50,29 @@ export async function executeTurn(params: TurnParams): Promise<TurnResult> {
         });
         break;
       case "tool_use":
-        // TODO: 这一次实现暂时不设计
+        // 先把积累的文本 flush 成一个 content block
+        if (currentText.length > 0) {
+          emitter.emit({
+            type: "message.text.done",
+            messageId: msgId,
+            partIndex,
+          });
+
+          contentBlocks.push({
+            type: "tool_use",
+            id: chunk.id,
+            name: chunk.name,
+            input: chunk.input,
+          });
+
+          partIndex++;
+
+          pendingToolCalls.push({
+            id: chunk.id,
+            name: chunk.name,
+            input: chunk.input,
+          });
+        }
         break;
       case "usage":
         // TODO: 这一次实现暂时不设计
@@ -54,6 +80,8 @@ export async function executeTurn(params: TurnParams): Promise<TurnResult> {
     }
   }
 
+  // flush 剩余文本
+  // text flush 逻辑：当收到 tool_use chunk 时，先把之前积累的 text 封装成 block，因为 LLM 可能先说 "让我读一下文件" 再调用 tool
   if (currentText.length > 0) {
     emitter.emit({
       type: "message.text.done",
@@ -61,6 +89,58 @@ export async function executeTurn(params: TurnParams): Promise<TurnResult> {
       partIndex,
     });
     contentBlocks.push({ type: "text", text: currentText });
+  }
+
+  // === Phase 2: 执行 tool 调用 ===
+
+  const toolResultBlocks: LLMContentBlock[] = [];
+
+  if (pendingToolCalls.length > 0 && toolRegistry && toolContext) {
+    for (const toolCall of pendingToolCalls) {
+      emitter.emit({
+        type: "message.tool.start",
+        messageId: msgId,
+        toolCallId: toolCall.id,
+        toolName: toolCall.name,
+        input: toolCall.input,
+      });
+
+      emitter.emit({
+        type: "message.tool.running",
+        toolCallId: toolCall.id,
+      });
+
+      const startTime = Date.now();
+      let output: string;
+      let isError = false;
+
+      try {
+        const tool = toolRegistry.get(toolCall.name);
+        const parsed = tool.parameters.parse(toolCall.input);
+        const result = await tool.execute(parsed, toolContext);
+        output = result.output;
+        isError = result.isError;
+      } catch {
+        output = `Error executing tool ${toolCall.name}`;
+        isError = true;
+      }
+
+      emitter.emit({
+        type: "message.tool.end",
+        toolCallId: toolCall.id,
+        output,
+        error: isError ? output : undefined,
+        durationMs: Date.now() - startTime,
+        state: isError ? TOOL_END_STATE.ERROR : TOOL_END_STATE.COMPLETE,
+      });
+
+      toolResultBlocks.push({
+        type: "tool_result",
+        toolCallId: toolCall.id,
+        content: output,
+        isError,
+      });
+    }
   }
 
   // 本轮 turn 结束
@@ -71,6 +151,10 @@ export async function executeTurn(params: TurnParams): Promise<TurnResult> {
       role: MESSAGE_ROLE.ASSISTANT,
       content: contentBlocks,
     },
-    hasToolCalls: false, // TODO: 这一次实现暂时不设计
+    hasToolCalls: pendingToolCalls.length > 0,
+    toolResultMessage:
+      pendingToolCalls.length > 0
+        ? { role: MESSAGE_ROLE.USER, content: toolResultBlocks }
+        : undefined,
   };
 }

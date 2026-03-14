@@ -5,6 +5,8 @@ import type { LLMProvider } from "../provider/base";
 
 import type { LoopEndReason } from "../events/types";
 import type { EventEmitter } from "../events/emitter";
+import type { ToolRegistry } from "../tools/registry";
+import type { ToolContext } from "../tools/types";
 
 /** Agent Loop 的启动参数 */
 export interface AgentLoopStartParams {
@@ -22,6 +24,10 @@ export interface AgentLoopStartParams {
   maxTurns?: number;
   /** 外部中断信号 */
   interruptSignal?: AbortSignal;
+  /** Tool 注册表 */
+  toolRegistry?: ToolRegistry;
+  /** Tool 执行上下文 */
+  toolContext?: ToolContext;
 }
 
 /** Agent Loop 运行结果 */
@@ -36,9 +42,15 @@ export interface AgentLoopResult {
 
 /** 一次 Turn 的输入 */
 export interface TurnParams {
+  /** 注册好的 llm provider */
   provider: LLMProvider;
+  /** Event bus emitter */
   emitter: EventEmitter;
   streamParams: LLMStreamParams;
+  /** Tool 注册表 */
+  toolRegistry?: ToolRegistry;
+  /** Tool 执行上下文 */
+  toolContext?: ToolContext;
 }
 
 /** 一次 Turn 的输出 */
@@ -47,4 +59,12 @@ export interface TurnResult {
   assistantMessage: LLMMessage;
   /** 是否有工具调用 */
   hasToolCalls: boolean;
+  /** 如果有 tool 调用，这里包含所有 tool_result 的 user 消息 */
+  toolResultMessage?: LLMMessage;
+}
+
+export interface PendingToolCall {
+  id: string;
+  name: string;
+  input: Record<string, unknown>;
 }

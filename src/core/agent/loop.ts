@@ -23,6 +23,8 @@ export async function runAgentLoop(
     interruptSignal,
     provider,
     systemPrompt,
+    toolContext,
+    toolRegistry,
   } = params;
 
   emitter.emit({ type: "session.status", status: SESSION_STATUS.BUSY });
@@ -31,6 +33,9 @@ export async function runAgentLoop(
   let turnCount = 0;
 
   let endReason: LoopEndReason = LOOP_END_REASON.COMPLETE;
+
+  // 构建 LLM tools 定义
+  const tools = toolRegistry?.toLLMToolDefinitions();
 
   emitter.emit({ type: "loop.start" });
 
@@ -53,10 +58,17 @@ export async function runAgentLoop(
         streamParams: {
           messages,
           systemPrompt,
+          tools,
         },
+        toolContext,
+        toolRegistry,
       });
 
       messages = [...messages, result.assistantMessage];
+
+      if (result.toolResultMessage) {
+        messages = [...messages, result.toolResultMessage];
+      }
 
       emitter.emit({
         type: "turn.end",
